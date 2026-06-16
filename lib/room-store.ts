@@ -1,7 +1,7 @@
 import { freshDeck, handTotal, isBlackjack } from './deck'
-import { pickWordPair } from './impostor-words'
-import { pickAnimal } from './animals'
-import { pickQuizQuestions } from './quiz-questions'
+import './db/init'
+import { pickImpostorItem } from './db/impostor-repository'
+import { pickQuizQuestions } from './db/quiz-repository'
 import type {
   GameId,
   Player,
@@ -323,27 +323,11 @@ export function vinteEUmNextRound(code: string) {
 //  IMPOSTOR (with animal images)
 // =====================================================
 export function startImpostor(room: Room) {
-  // 50/50: sorteia entre o pool de animais (sempre com foto) e o pool de
-  // palavras gerais (algumas com foto, algumas só texto)
-  const useAnimal = Math.random() < 0.5
-  let category: string
-  let secretWord: string
-  let emoji: string
-  let image: string | null
-
-  if (useAnimal) {
-    const animal = pickAnimal()
-    category = 'Animal'
-    secretWord = animal.name
-    emoji = animal.emoji
-    image = animal.imageUrl
-  } else {
-    const pair = pickWordPair()
-    category = pair.category
-    secretWord = pair.word
-    emoji = pair.emoji
-    image = pair.imageUrl
-  }
+  const item = pickImpostorItem()
+  const category = item.category
+  const secretWord = item.name
+  const emoji = item.emoji
+  const image = item.imageUrl
 
   const ids = room.players.map((p) => p.id)
   const impostorCount = ids.length >= 6 ? 2 : 1

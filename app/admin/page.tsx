@@ -4,8 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   RefreshCw, Trash2, Play, Trophy, RotateCcw, Gamepad2,
-  Users, Zap, BrainCircuit, UserSearch, Spade, Home, Shield
+  Users, Zap, BrainCircuit, UserSearch, Spade, Home, Shield,
+  LayoutDashboard,
 } from 'lucide-react'
+import { QuizManager } from '@/components/admin/quiz-manager'
+import { ImpostorManager } from '@/components/admin/impostor-manager'
+
+type Tab = 'rooms' | 'quiz' | 'impostor'
 
 type RoomInfo = {
   code: string
@@ -41,6 +46,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('rooms')
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -136,15 +142,35 @@ export default function AdminPage() {
             </h1>
             <p className="text-muted-foreground mt-1">{rooms.length} sala(s) ativa(s)</p>
           </div>
-          <button
-            type="button"
-            onClick={fetchRooms}
-            className="flex items-center gap-2 rounded-2xl border-2 border-border bg-card px-4 py-2 font-heading font-bold hover:bg-muted"
-          >
-            <RefreshCw className="size-4" /> Atualizar
-          </button>
+          {tab === 'rooms' && (
+            <button
+              type="button"
+              onClick={fetchRooms}
+              className="flex items-center gap-2 rounded-2xl border-2 border-border bg-card px-4 py-2 font-heading font-bold hover:bg-muted"
+            >
+              <RefreshCw className="size-4" /> Atualizar
+            </button>
+          )}
         </div>
 
+        {/* Tabs */}
+        <div className="mb-8 flex gap-2 border-b-2 border-border pb-0">
+          <TabButton active={tab === 'rooms'} onClick={() => setTab('rooms')} icon={<LayoutDashboard className="size-4" />}>
+            Salas
+          </TabButton>
+          <TabButton active={tab === 'quiz'} onClick={() => setTab('quiz')} icon={<BrainCircuit className="size-4" />}>
+            Quiz
+          </TabButton>
+          <TabButton active={tab === 'impostor'} onClick={() => setTab('impostor')} icon={<UserSearch className="size-4" />}>
+            Impostor
+          </TabButton>
+        </div>
+
+        {tab === 'quiz' && <QuizManager />}
+        {tab === 'impostor' && <ImpostorManager />}
+
+        {tab === 'rooms' && (
+        <>
         {loading ? (
           <div className="text-center text-muted-foreground font-heading text-xl py-20">
             Carregando...
@@ -287,7 +313,28 @@ export default function AdminPage() {
             </div>
           ))}
         </div>
+        </>
+        )}
       </div>
     </div>
+  )
+}
+
+function TabButton({
+  active, onClick, icon, children,
+}: { active: boolean; onClick: () => void; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 border-b-2 px-4 py-3 font-heading font-bold transition-colors ${
+        active
+          ? 'border-primary text-primary'
+          : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {icon}
+      {children}
+    </button>
   )
 }

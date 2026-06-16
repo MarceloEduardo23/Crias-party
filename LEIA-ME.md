@@ -57,11 +57,51 @@ sala. Os celulares entram pelo código de 4 letras.
 > simultâneas por muito tempo), o próximo passo seria mover o estado para
 > Redis ou um banco de dados.
 
+## Banco de dados (perguntas do Quiz e itens do Impostor)
+
+Agora as perguntas do Quiz e os itens do Impostor (animais, comidas, lugares
+etc) ficam num **banco SQLite real** (`data/crias-party.db`), não mais em
+arquivos de código. Isso significa que você pode criar, editar, ativar/desativar
+e excluir perguntas e itens direto pelo painel `/admin`, sem precisar editar
+nenhum código.
+
+- Na primeira vez que o servidor rodar, o banco é criado automaticamente e
+  populado com todo o conteúdo que já existia (38 perguntas de quiz, 55 itens
+  de impostor incluindo os 20 animais com foto).
+- Usamos o módulo nativo `node:sqlite` do Node.js (disponível a partir da
+  versão 22.5) — não depende de nenhum pacote externo nem de compilação,
+  então funciona em qualquer lugar sem configuração extra.
+- No painel admin (`/admin`), agora tem três abas: **Salas**, **Quiz** e
+  **Impostor**. Nas duas últimas você cadastra, edita e desativa conteúdo
+  livremente.
+
+### ⚠️ Atenção se for hospedar na Vercel (ou qualquer serverless)
+
+A Vercel roda funções em um sistema de arquivos **somente leitura** (exceto
+`/tmp`, que é temporário e não persiste). Isso quer dizer que o arquivo
+`data/crias-party.db` **não vai persistir entre deploys nem entre instâncias**
+se você rodar assim "puro" na Vercel — toda vez que uma função reiniciar, o
+banco volta ao estado inicial (com o seed de novo).
+
+Para produção de verdade, a solução recomendada é trocar o SQLite local por
+um banco de dados hospedado, mantendo praticamente a mesma estrutura de
+código (`lib/db/quiz-repository.ts` e `lib/db/impostor-repository.ts` já
+isolam todo o acesso a dados — só precisa trocar a implementação interna):
+
+- **Turso** (SQLite distribuído, plano gratuito generoso, API bem parecida
+  com o que já está aqui) — provavelmente a migração mais simples.
+- **Neon** ou **Supabase** (Postgres gerenciado, planos gratuitos disponíveis).
+- **Vercel Postgres** (se quiser manter tudo dentro do ecossistema Vercel).
+
+Se quiser, no próximo passo eu já adapto os repositórios para um desses
+serviços — é só avisar qual prefere.
+
 ## Próximos passos sugeridos
 
-- Adicionar mais perguntas de quiz pelo admin (hoje só dá pra editar o arquivo
-  `lib/quiz-questions.ts` direto no código — um CRUD de perguntas no painel
-  admin seria o próximo upgrade natural).
+- Migrar o SQLite local para um banco hospedado (Turso/Neon/Supabase) antes
+  de ir pra produção de verdade — ver aviso acima.
+- Mover o estado das salas (jogadores, placar, jogo atual) para Redis ou
+  esse mesmo banco, hoje ainda vive em memória do processo Node.
 - Trocar as imagens de animais por fotos hospedadas no próprio domínio (hoje
   usamos Wikimedia Commons) para não depender de terceiros.
-- Persistência em Redis/banco para sobreviver a reinícios do servidor.
+
