@@ -17,3 +17,6 @@ node_modules
 .env
 out/
 dist/
+next-env.d.ts
+tsconfig.tsbuildinfo
+package-lock.json
