@@ -33,19 +33,26 @@ export function PhoneImpostor({ room, me }: { room: Room; me: Player }) {
   if (st.phase === 'reveal-role') {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
-        {/* Animal image shown to everyone */}
-        <div className="overflow-hidden rounded-3xl border-2 border-border" style={{ width: '100%', maxWidth: 240, height: 160 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={st.animalImage}
-            alt="Animal secreto"
-            className="h-full w-full object-cover"
-            crossOrigin="anonymous"
-          />
-        </div>
-        <p className="font-heading text-base text-muted-foreground">
-          Essa é a imagem do animal misterioso {st.animalEmoji}
-        </p>
+        {st.animalImage ? (
+          <>
+            <div className="overflow-hidden rounded-3xl border-2 border-border" style={{ width: '100%', maxWidth: 240, height: 160 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={st.animalImage}
+                alt="Item secreto"
+                className="h-full w-full object-cover"
+                crossOrigin="anonymous"
+              />
+            </div>
+            <p className="font-heading text-base text-muted-foreground">
+              Essa é a imagem do item misterioso {st.animalEmoji}
+            </p>
+          </>
+        ) : (
+          <p className="font-heading text-lg text-muted-foreground">
+            Categoria: <span className="font-bold text-accent">{st.category}</span>
+          </p>
+        )}
 
         <button
           type="button"
@@ -98,13 +105,13 @@ export function PhoneImpostor({ room, me }: { room: Room; me: Player }) {
                   <>
                     <span className="font-heading text-5xl">{st.animalEmoji}</span>
                     <span className="font-heading text-sm font-bold uppercase tracking-widest text-muted-foreground">
-                      O animal é
+                      A palavra é
                     </span>
                     <span className="font-heading text-4xl font-bold text-accent">
                       {myWord}
                     </span>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Dê dicas sem revelar o nome diretamente!
+                      Dê dicas sem revelar a palavra diretamente!
                     </p>
                   </>
                 )}
@@ -123,14 +130,18 @@ export function PhoneImpostor({ room, me }: { room: Room; me: Player }) {
 
     return (
       <div className="flex flex-1 flex-col gap-5">
-        {/* Small animal image */}
+        {/* Small item preview */}
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/60 p-3">
-          <div className="overflow-hidden rounded-xl" style={{ width: 56, height: 40 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={st.animalImage} alt="" className="h-full w-full object-cover" crossOrigin="anonymous" />
-          </div>
+          {st.animalImage && (
+            <div className="overflow-hidden rounded-xl" style={{ width: 56, height: 40 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={st.animalImage} alt="" className="h-full w-full object-cover" crossOrigin="anonymous" />
+            </div>
+          )}
           <div>
-            <p className="font-heading text-xs text-muted-foreground">Animal</p>
+            <p className="font-heading text-xs text-muted-foreground">
+              {st.animalImage ? 'Item' : `Categoria: ${st.category}`}
+            </p>
             <p className="font-heading font-bold text-base">
               {amImpostor ? <span className="text-primary">??? (você não sabe!) 😈</span> : <span className="text-accent">{st.animalEmoji} {myWord}</span>}
             </p>
@@ -249,10 +260,12 @@ export function PhoneImpostor({ room, me }: { room: Room; me: Player }) {
 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
-        <div className="overflow-hidden rounded-3xl border-2 border-secondary/40" style={{ width: '100%', maxWidth: 200, height: 140 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={st.animalImage} alt={st.animalName} className="h-full w-full object-cover" crossOrigin="anonymous" />
-        </div>
+        {st.animalImage && (
+          <div className="overflow-hidden rounded-3xl border-2 border-secondary/40" style={{ width: '100%', maxWidth: 200, height: 140 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={st.animalImage} alt={st.animalName} className="h-full w-full object-cover" crossOrigin="anonymous" />
+          </div>
+        )}
         <p className="font-heading text-2xl font-bold">
           {st.animalEmoji} {st.animalName}
         </p>

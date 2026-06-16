@@ -45,7 +45,7 @@ export type ImpostorState = {
   secretWord: string
   animalName: string
   animalEmoji: string
-  animalImage: string
+  animalImage: string | null
   impostorIds: string[]
   /** playerId -> word they see ('' for impostor) */
   assignments: Record<string, string>

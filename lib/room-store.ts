@@ -323,23 +323,44 @@ export function vinteEUmNextRound(code: string) {
 //  IMPOSTOR (with animal images)
 // =====================================================
 export function startImpostor(room: Room) {
-  const animal = pickAnimal()
+  // 50/50: sorteia entre o pool de animais (sempre com foto) e o pool de
+  // palavras gerais (algumas com foto, algumas só texto)
+  const useAnimal = Math.random() < 0.5
+  let category: string
+  let secretWord: string
+  let emoji: string
+  let image: string | null
+
+  if (useAnimal) {
+    const animal = pickAnimal()
+    category = 'Animal'
+    secretWord = animal.name
+    emoji = animal.emoji
+    image = animal.imageUrl
+  } else {
+    const pair = pickWordPair()
+    category = pair.category
+    secretWord = pair.word
+    emoji = pair.emoji
+    image = pair.imageUrl
+  }
+
   const ids = room.players.map((p) => p.id)
   const impostorCount = ids.length >= 6 ? 2 : 1
   const shuffled = [...ids].sort(() => Math.random() - 0.5)
   const impostorIds = shuffled.slice(0, impostorCount)
   const assignments: Record<string, string> = {}
   for (const id of ids) {
-    assignments[id] = impostorIds.includes(id) ? '' : animal.name
+    assignments[id] = impostorIds.includes(id) ? '' : secretWord
   }
   const order = [...ids].sort(() => Math.random() - 0.5)
   room.impostor = {
     phase: 'reveal-role',
-    category: 'Animal',
-    secretWord: animal.name,
-    animalName: animal.name,
-    animalEmoji: animal.emoji,
-    animalImage: animal.imageUrl,
+    category,
+    secretWord,
+    animalName: secretWord,
+    animalEmoji: emoji,
+    animalImage: image,
     impostorIds,
     assignments,
     order,

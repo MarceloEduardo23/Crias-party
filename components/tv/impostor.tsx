@@ -47,34 +47,49 @@ export function TvImpostor({ room }: { room: Room }) {
               exit={{ opacity: 0, scale: 0.9 }}
               className="flex flex-col items-center gap-6"
             >
-              {/* Animal image - shown to everyone; the trick is the impostor doesn't know the NAME */}
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', bounce: 0.4 }}
-                className="relative overflow-hidden rounded-4xl border-4 border-secondary/60 shadow-2xl"
-                style={{ width: 280, height: 200 }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={st.animalImage}
-                  alt="Animal secreto"
-                  className="h-full w-full object-cover"
-                  crossOrigin="anonymous"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-3 left-0 right-0 flex justify-center">
-                  <span className="font-heading text-5xl">{st.animalEmoji}</span>
-                </div>
-              </motion.div>
-
-              <h2 className="text-balance font-heading text-3xl font-bold sm:text-5xl">
-                Todos veem esta imagem!
-              </h2>
-              <p className="max-w-xl text-pretty text-lg text-muted-foreground">
-                O <span className="font-bold text-primary">impostor</span> não sabe o nome do animal.
-                Dê dicas sem revelar o nome — e tente descobrir quem não sabe! 🕵️
-              </p>
+              {st.animalImage ? (
+                <>
+                  {/* Image shown to everyone; the impostor just doesn't know the NAME */}
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', bounce: 0.4 }}
+                    className="relative overflow-hidden rounded-4xl border-4 border-secondary/60 shadow-2xl"
+                    style={{ width: 280, height: 200 }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={st.animalImage}
+                      alt="Item secreto"
+                      className="h-full w-full object-cover"
+                      crossOrigin="anonymous"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+                      <span className="font-heading text-5xl">{st.animalEmoji}</span>
+                    </div>
+                  </motion.div>
+                  <h2 className="text-balance font-heading text-3xl font-bold sm:text-5xl">
+                    Todos veem esta imagem!
+                  </h2>
+                  <p className="max-w-xl text-pretty text-lg text-muted-foreground">
+                    O <span className="font-bold text-primary">impostor</span> não sabe o nome.
+                    Dê dicas sem revelar o nome — e tente descobrir quem não sabe! 🕵️
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Eye className="size-16 text-secondary" />
+                  <h2 className="text-balance font-heading text-3xl font-bold sm:text-5xl">
+                    Veja seu papel no celular
+                  </h2>
+                  <p className="max-w-xl text-pretty text-lg text-muted-foreground">
+                    Cada um recebe a palavra secreta da categoria{' '}
+                    <span className="font-bold text-accent">{st.category}</span>...
+                    menos {st.impostorIds.length === 1 ? 'o impostor' : 'os impostores'}!
+                  </p>
+                </>
+              )}
               <p className="font-heading text-xl font-bold text-muted-foreground">
                 Veja seu papel no celular ↓
               </p>
@@ -99,27 +114,32 @@ export function TvImpostor({ room }: { room: Room }) {
               exit={{ opacity: 0 }}
               className="flex w-full flex-col items-center gap-6"
             >
-              <div className="flex items-center gap-6">
-                {/* Smaller animal image during clues */}
-                <motion.div
-                  className="overflow-hidden rounded-3xl border-2 border-secondary/40"
-                  style={{ width: 110, height: 80 }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={st.animalImage}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    crossOrigin="anonymous"
-                  />
-                </motion.div>
-                <div className="text-left">
-                  <p className="font-heading text-lg text-muted-foreground">
-                    Animal: <span className="font-bold text-accent">{st.animalEmoji} ???</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground">O impostor não sabe o nome!</p>
+              {st.animalImage ? (
+                <div className="flex items-center gap-6">
+                  <motion.div
+                    className="overflow-hidden rounded-3xl border-2 border-secondary/40"
+                    style={{ width: 110, height: 80 }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={st.animalImage}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      crossOrigin="anonymous"
+                    />
+                  </motion.div>
+                  <div className="text-left">
+                    <p className="font-heading text-lg text-muted-foreground">
+                      Item: <span className="font-bold text-accent">{st.animalEmoji} ???</span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">O impostor não sabe o nome!</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p className="font-heading text-xl text-muted-foreground">
+                  Categoria: <span className="font-bold text-accent">{st.category}</span>
+                </p>
+              )}
 
               {active && (
                 <motion.h2
@@ -174,19 +194,21 @@ export function TvImpostor({ room }: { room: Room }) {
                   : 'A votação empatou, ninguém foi expulso!'}
               </p>
 
-              {/* Reveal the animal */}
+              {/* Reveal the item */}
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', bounce: 0.4, delay: 0.3 }}
                 className="flex items-center gap-6 rounded-4xl border-2 border-secondary/40 bg-card p-6"
               >
-                <div className="overflow-hidden rounded-3xl" style={{ width: 120, height: 90 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={st.animalImage} alt={st.animalName} className="h-full w-full object-cover" crossOrigin="anonymous" />
-                </div>
+                {st.animalImage && (
+                  <div className="overflow-hidden rounded-3xl" style={{ width: 120, height: 90 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={st.animalImage} alt={st.animalName} className="h-full w-full object-cover" crossOrigin="anonymous" />
+                  </div>
+                )}
                 <div className="text-left">
-                  <p className="text-muted-foreground">O animal era</p>
+                  <p className="text-muted-foreground">{st.animalImage ? 'O item era' : `A palavra (${st.category}) era`}</p>
                   <p className="font-heading text-4xl font-bold text-accent">
                     {st.animalEmoji} {st.animalName}
                   </p>
