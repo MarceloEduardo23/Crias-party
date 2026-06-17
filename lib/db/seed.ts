@@ -1,4 +1,4 @@
-import { db, initSchema } from './client'
+import { ensureSchema } from './client'
 import { ANIMALS } from '../animals'
 import { WORD_PAIRS } from '../impostor-words'
 import { QUIZ_QUESTIONS } from '../quiz-questions'
@@ -9,12 +9,12 @@ import { countImpostorItems, createImpostorItem } from './impostor-repository'
  * Popula o banco com o conteúdo que antes vivia em arquivos estáticos.
  * Seguro de rodar mais de uma vez: só insere se as tabelas estiverem vazias.
  */
-export function seedDatabase() {
-  initSchema()
+export async function seedDatabase() {
+  await ensureSchema()
 
-  if (countQuizQuestions() === 0) {
+  if ((await countQuizQuestions()) === 0) {
     for (const q of QUIZ_QUESTIONS) {
-      createQuizQuestion({
+      await createQuizQuestion({
         question: q.question,
         options: q.options as [string, string, string, string],
         correctIndex: q.correctIndex,
@@ -24,9 +24,9 @@ export function seedDatabase() {
     console.log(`[seed] ${QUIZ_QUESTIONS.length} perguntas de quiz inseridas`)
   }
 
-  if (countImpostorItems() === 0) {
+  if ((await countImpostorItems()) === 0) {
     for (const animal of ANIMALS) {
-      createImpostorItem({
+      await createImpostorItem({
         name: animal.name,
         category: 'Animais',
         emoji: animal.emoji,
@@ -34,7 +34,7 @@ export function seedDatabase() {
       })
     }
     for (const pair of WORD_PAIRS) {
-      createImpostorItem({
+      await createImpostorItem({
         name: pair.word,
         category: pair.category,
         emoji: pair.emoji,
@@ -50,5 +50,9 @@ export function seedDatabase() {
 // Permite rodar via `npx tsx lib/db/seed.ts` standalone
 if (require.main === module) {
   seedDatabase()
-  console.log('Seed concluído.')
+    .then(() => console.log('Seed concluído.'))
+    .catch((err) => {
+      console.error('Erro no seed:', err)
+      process.exit(1)
+    })
 }

@@ -1,12 +1,12 @@
-import { db } from './client'
+import { db, ensureSchema } from './client'
 
 export type ImpostorItemRow = {
-  id: number
+  id: number | bigint
   name: string
   category: string
   emoji: string
   image_url: string | null
-  active: number
+  active: number | bigint
   created_at: string
 }
 
@@ -24,26 +24,24 @@ function toDomain(row: ImpostorItemRow) {
     category: row.category,
     emoji: row.emoji,
     imageUrl: row.image_url,
-    active: row.active === 1,
+    active: Number(row.active) === 1,
   }
 }
 
-export function listImpostorItems() {
-  const rows = db
-    .prepare('SELECT * FROM impostor_items ORDER BY created_at DESC')
-    .all() as unknown as ImpostorItemRow[]
-  return rows.map(toDomain)
+export async function listImpostorItems() {
+  await ensureSchema()
+  const res = await db.execute('SELECT * FROM impostor_items ORDER BY created_at DESC')
+  return (res.rows as unknown as ImpostorItemRow[]).map(toDomain)
 }
 
-export function listActiveImpostorItems() {
-  const rows = db
-    .prepare('SELECT * FROM impostor_items WHERE active = 1')
-    .all() as unknown as ImpostorItemRow[]
-  return rows.map(toDomain)
+export async function listActiveImpostorItems() {
+  await ensureSchema()
+  const res = await db.execute('SELECT * FROM impostor_items WHERE active = 1')
+  return (res.rows as unknown as ImpostorItemRow[]).map(toDomain)
 }
 
-export function pickImpostorItem() {
-  const all = listActiveImpostorItems()
+export async function pickImpostorItem() {
+  const all = await listActiveImpostorItems()
   if (all.length === 0) {
     // fallback de segurança caso o banco esteja vazio
     return { id: '0', name: 'Pizza', category: 'Comida', emoji: '🍕', imageUrl: null, active: true }
@@ -51,32 +49,38 @@ export function pickImpostorItem() {
   return all[Math.floor(Math.random() * all.length)]
 }
 
-export function createImpostorItem(input: ImpostorItemInput) {
-  const stmt = db.prepare(`
-    INSERT INTO impostor_items (name, category, emoji, image_url)
-    VALUES (?, ?, ?, ?)
-  `)
-  const result = stmt.run(input.name, input.category, input.emoji, input.imageUrl)
-  return String(result.lastInsertRowid)
+export async function createImpostorItem(input: ImpostorItemInput) {
+  await ensureSchema()
+  const res = await db.execute({
+    sql: `INSERT INTO impostor_items (name, category, emoji, image_url) VALUES (?, ?, ?, ?)`,
+    args: [input.name, input.category, input.emoji, input.imageUrl],
+  })
+  return String(res.lastInsertRowid)
 }
 
-export function updateImpostorItem(id: string, input: ImpostorItemInput) {
-  db.prepare(`
-    UPDATE impostor_items
-    SET name = ?, category = ?, emoji = ?, image_url = ?
-    WHERE id = ?
-  `).run(input.name, input.category, input.emoji, input.imageUrl, Number(id))
+export async function updateImpostorItem(id: string, input: ImpostorItemInput) {
+  await ensureSchema()
+  await db.execute({
+    sql: `UPDATE impostor_items SET name = ?, category = ?, emoji = ?, image_url = ? WHERE id = ?`,
+    args: [input.name, input.category, input.emoji, input.imageUrl, Number(id)],
+  })
 }
 
-export function setImpostorItemActive(id: string, active: boolean) {
-  db.prepare('UPDATE impostor_items SET active = ? WHERE id = ?').run(active ? 1 : 0, Number(id))
+export async function setImpostorItemActive(id: string, active: boolean) {
+  await ensureSchema()
+  await db.execute({
+    sql: 'UPDATE impostor_items SET active = ? WHERE id = ?',
+    args: [active ? 1 : 0, Number(id)],
+  })
 }
 
-export function deleteImpostorItem(id: string) {
-  db.prepare('DELETE FROM impostor_items WHERE id = ?').run(Number(id))
+export async function deleteImpostorItem(id: string) {
+  await ensureSchema()
+  await db.execute({ sql: 'DELETE FROM impostor_items WHERE id = ?', args: [Number(id)] })
 }
 
-export function countImpostorItems() {
-  const row = db.prepare('SELECT COUNT(*) as c FROM impostor_items').get() as { c: number }
-  return row.c
+export async function countImpostorItems() {
+  await ensureSchema()
+  const res = await db.execute('SELECT COUNT(*) as c FROM impostor_items')
+  return Number((res.rows[0] as unknown as { c: number | bigint }).c)
 }

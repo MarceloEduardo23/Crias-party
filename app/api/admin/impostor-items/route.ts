@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { listImpostorItems, createImpostorItem } from '@/lib/db/impostor-repository'
+import { ensureSeeded } from '@/lib/db/init'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,11 +12,13 @@ function checkAuth(req: Request) {
 
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  return NextResponse.json({ items: listImpostorItems() })
+  await ensureSeeded()
+  return NextResponse.json({ items: await listImpostorItems() })
 }
 
 export async function POST(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const body = await req.json() as {
     name: string
     category: string
@@ -27,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
   }
 
-  const id = createImpostorItem({
+  const id = await createImpostorItem({
     name: body.name.trim(),
     category: body.category?.trim() || 'Geral',
     emoji: body.emoji?.trim() || '❓',

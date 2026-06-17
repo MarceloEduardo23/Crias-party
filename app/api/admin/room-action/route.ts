@@ -16,19 +16,19 @@ export async function POST(req: Request) {
 
   switch (action) {
     case 'start-party':
-      startParty(code)
+      await startParty(code)
       break
     case 'reset-scores':
       resetScores(code)
       break
     case 'set-game':
-      if (game) setGame(code, game as any)
+      if (game) await setGame(code, game as any)
       break
     case 'advance-ranking':
-      advanceFromRanking(code)
+      await advanceFromRanking(code)
       break
     case 'go-lobby':
-      setGame(code, 'lobby')
+      await setGame(code, 'lobby')
       break
   }
   return NextResponse.json({ ok: true })

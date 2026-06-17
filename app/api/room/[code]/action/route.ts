@@ -45,16 +45,16 @@ export async function POST(
 
   switch (body.type) {
     case 'set-game':
-      if (body.game) setGame(upper, body.game)
+      if (body.game) await setGame(upper, body.game)
       break
     case 'start-party':
-      startParty(upper)
+      await startParty(upper)
       break
     case 'reset-scores':
       resetScores(upper)
       break
     case 'advance-from-ranking':
-      advanceFromRanking(upper)
+      await advanceFromRanking(upper)
       break
     // vinte e um
     case 'v21-begin-turns':
@@ -67,7 +67,7 @@ export async function POST(
       if (body.playerId) vinteEUmStand(upper, body.playerId)
       break
     case 'v21-next-round':
-      vinteEUmNextRound(upper)
+      await vinteEUmNextRound(upper)
       break
     // impostor
     case 'imp-begin-clues':
@@ -81,7 +81,7 @@ export async function POST(
         impostorVote(upper, body.playerId, body.votedForId)
       break
     case 'imp-next-round':
-      impostorNextRound(upper)
+      await impostorNextRound(upper)
       break
     // quiz
     case 'quiz-answer':
@@ -92,7 +92,7 @@ export async function POST(
       quizRevealTimeout(upper)
       break
     case 'quiz-next':
-      quizNextQuestion(upper)
+      await quizNextQuestion(upper)
       break
     default:
       return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })

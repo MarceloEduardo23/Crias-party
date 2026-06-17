@@ -1,5 +1,5 @@
 import { freshDeck, handTotal, isBlackjack } from './deck'
-import './db/init'
+import { ensureSeeded } from './db/init'
 import { pickImpostorItem } from './db/impostor-repository'
 import { pickQuizQuestions } from './db/quiz-repository'
 import type {
@@ -137,7 +137,8 @@ function shuffleGames(): Array<'vinte-e-um' | 'impostor' | 'quiz'> {
   return shuffled
 }
 
-export function startParty(code: string) {
+export async function startParty(code: string) {
+  await ensureSeeded()
   const room = getRoom(code)
   if (!room) return
   const gamesSequence = shuffleGames()
@@ -151,17 +152,18 @@ export function startParty(code: string) {
   }
   for (const p of room.players) p.score = 0
   const firstGame = gamesSequence[0]
-  setGame(code, firstGame, false)
+  await setGame(code, firstGame, false)
 }
 
-export function setGame(code: string, game: GameId, broadcastNow = true) {
+export async function setGame(code: string, game: GameId, broadcastNow = true) {
+  await ensureSeeded()
   const room = getRoom(code)
   if (!room) return
   room.currentGame = game
   room.announcement = null
   if (game === 'vinte-e-um') startVinteEUm(room)
-  else if (game === 'impostor') startImpostor(room)
-  else if (game === 'quiz') startQuiz(room)
+  else if (game === 'impostor') await startImpostor(room)
+  else if (game === 'quiz') await startQuiz(room)
   else if (game === 'ranking') startRanking(room)
   else {
     room.vinteEUm = null
@@ -172,7 +174,7 @@ export function setGame(code: string, game: GameId, broadcastNow = true) {
   if (broadcastNow) broadcast(code)
 }
 
-export function advanceParty(code: string) {
+export async function advanceParty(code: string) {
   const room = getRoom(code)
   if (!room || !room.party) return
   const p = room.party
@@ -181,26 +183,25 @@ export function advanceParty(code: string) {
     // Party over - show final ranking
     p.phase = 'gameover'
     p.roundNumber = p.totalRounds
-    setGame(code, 'ranking', false)
+    await setGame(code, 'ranking', false)
     if (room.ranking) room.ranking.isGameOver = true
     broadcast(code)
   } else {
     p.currentRoundIndex = nextIndex
     p.roundNumber = nextIndex + 1
-    const nextGame = p.gamesSequence[nextIndex]
-    setGame(code, 'ranking', false)
+    await setGame(code, 'ranking', false)
     broadcast(code)
   }
 }
 
-export function advanceFromRanking(code: string) {
+export async function advanceFromRanking(code: string) {
   const room = getRoom(code)
   if (!room || !room.party) return
   const p = room.party
   if (p.phase === 'gameover') return
   const nextIndex = p.currentRoundIndex
   const nextGame = p.gamesSequence[nextIndex]
-  setGame(code, nextGame, true)
+  await setGame(code, nextGame, true)
 }
 
 // =====================================================
@@ -308,11 +309,11 @@ function finishVinteEUm(room: Room) {
   }
 }
 
-export function vinteEUmNextRound(code: string) {
+export async function vinteEUmNextRound(code: string) {
   const room = getRoom(code)
   if (!room) return
   if (room.party) {
-    advanceParty(code)
+    await advanceParty(code)
   } else {
     startVinteEUm(room)
     broadcast(code)
@@ -322,8 +323,8 @@ export function vinteEUmNextRound(code: string) {
 // =====================================================
 //  IMPOSTOR (with animal images)
 // =====================================================
-export function startImpostor(room: Room) {
-  const item = pickImpostorItem()
+export async function startImpostor(room: Room) {
+  const item = await pickImpostorItem()
   const category = item.category
   const secretWord = item.name
   const emoji = item.emoji
@@ -431,13 +432,13 @@ function resolveImpostor(room: Room) {
   }
 }
 
-export function impostorNextRound(code: string) {
+export async function impostorNextRound(code: string) {
   const room = getRoom(code)
   if (!room) return
   if (room.party) {
-    advanceParty(code)
+    await advanceParty(code)
   } else {
-    startImpostor(room)
+    await startImpostor(room)
     broadcast(code)
   }
 }
@@ -445,8 +446,8 @@ export function impostorNextRound(code: string) {
 // =====================================================
 //  QUIZ
 // =====================================================
-export function startQuiz(room: Room) {
-  const questions = pickQuizQuestions(5)
+export async function startQuiz(room: Room) {
+  const questions = await pickQuizQuestions(5)
   room.quiz = {
     phase: 'question',
     questions,
@@ -491,7 +492,7 @@ export function quizRevealTimeout(code: string) {
   broadcast(code)
 }
 
-export function quizNextQuestion(code: string) {
+export async function quizNextQuestion(code: string) {
   const room = getRoom(code)
   const st = room?.quiz
   if (!room || !st) return
@@ -499,9 +500,9 @@ export function quizNextQuestion(code: string) {
   if (nextIdx >= st.questions.length) {
     // Quiz done
     if (room.party) {
-      advanceParty(code)
+      await advanceParty(code)
     } else {
-      setGame(code, 'lobby')
+      await setGame(code, 'lobby')
     }
   } else {
     st.currentQuestionIndex = nextIdx

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { updateQuizQuestion, deleteQuizQuestion, setQuizQuestionActive } from '@/lib/db/quiz-repository'
+import { ensureSeeded } from '@/lib/db/init'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const { id } = await params
   const body = await req.json() as {
     question?: string
@@ -24,7 +26,7 @@ export async function PUT(
   }
 
   if (typeof body.active === 'boolean' && body.question === undefined) {
-    setQuizQuestionActive(id, body.active)
+    await setQuizQuestionActive(id, body.active)
     return NextResponse.json({ ok: true })
   }
 
@@ -32,7 +34,7 @@ export async function PUT(
     return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
   }
 
-  updateQuizQuestion(id, {
+  await updateQuizQuestion(id, {
     question: body.question.trim(),
     options: body.options,
     correctIndex: body.correctIndex ?? 0,
@@ -46,7 +48,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const { id } = await params
-  deleteQuizQuestion(id)
+  await deleteQuizQuestion(id)
   return NextResponse.json({ ok: true })
 }

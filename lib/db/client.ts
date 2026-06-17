@@ -1,32 +1,45 @@
-import { DatabaseSync } from 'node:sqlite'
+import { createClient, type Client } from '@libsql/client'
 import path from 'node:path'
 import fs from 'node:fs'
 
-// SQLite nativo do Node (v22.5+) — sem dependências externas, sem binários
-// pra compilar. O arquivo do banco fica em ./data/crias-party.db (criado
-// automaticamente na primeira execução).
+// Em produção (Vercel ou qualquer serverless), defina TURSO_DATABASE_URL e
+// TURSO_AUTH_TOKEN nas variáveis de ambiente para usar um banco Turso
+// hospedado (persistente entre deploys/instâncias).
+//
+// Sem essas variáveis, cai automaticamente para um arquivo SQLite local em
+// ./data/crias-party.db — ótimo para desenvolvimento, mas não persiste em
+// ambientes serverless com filesystem somente-leitura.
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-const DB_PATH = path.join(DATA_DIR, 'crias-party.db')
+const TURSO_URL = process.env.TURSO_DATABASE_URL
+const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true })
+function resolveLocalUrl(): string {
+  const dataDir = path.join(process.cwd(), 'data')
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true })
+  }
+  return `file:${path.join(dataDir, 'crias-party.db')}`
 }
 
-type GlobalWithDb = typeof globalThis & { __criasDb?: DatabaseSync }
+type GlobalWithDb = typeof globalThis & { __criasDb?: Client }
 const g = globalThis as GlobalWithDb
 
-function createConnection(): DatabaseSync {
-  const db = new DatabaseSync(DB_PATH)
-  db.exec('PRAGMA journal_mode = WAL;')
-  db.exec('PRAGMA foreign_keys = ON;')
-  return db
+function createConnection(): Client {
+  if (TURSO_URL) {
+    return createClient({
+      url: TURSO_URL,
+      authToken: TURSO_TOKEN,
+    })
+  }
+  return createClient({ url: resolveLocalUrl() })
 }
 
-export const db: DatabaseSync = g.__criasDb ?? (g.__criasDb = createConnection())
+export const db: Client = g.__criasDb ?? (g.__criasDb = createConnection())
 
-export function initSchema() {
-  db.exec(`
+export const usingTurso = Boolean(TURSO_URL)
+
+export async function initSchema() {
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS quiz_questions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       question TEXT NOT NULL,
@@ -38,8 +51,10 @@ export function initSchema() {
       category TEXT NOT NULL DEFAULT 'Geral',
       active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+    )
+  `)
 
+  await db.execute(`
     CREATE TABLE IF NOT EXISTS impostor_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -48,11 +63,15 @@ export function initSchema() {
       image_url TEXT,
       active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_quiz_active ON quiz_questions(active);
-    CREATE INDEX IF NOT EXISTS idx_impostor_active ON impostor_items(active);
+    )
   `)
+
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_quiz_active ON quiz_questions(active)')
+  await db.execute('CREATE INDEX IF NOT EXISTS idx_impostor_active ON impostor_items(active)')
 }
 
-initSchema()
+let schemaReady: Promise<void> | null = null
+export function ensureSchema(): Promise<void> {
+  if (!schemaReady) schemaReady = initSchema()
+  return schemaReady
+}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { listQuizQuestions, createQuizQuestion } from '@/lib/db/quiz-repository'
+import { ensureSeeded } from '@/lib/db/init'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,11 +12,13 @@ function checkAuth(req: Request) {
 
 export async function GET(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  return NextResponse.json({ questions: listQuizQuestions() })
+  await ensureSeeded()
+  return NextResponse.json({ questions: await listQuizQuestions() })
 }
 
 export async function POST(req: Request) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const body = await req.json() as {
     question: string
     options: [string, string, string, string]
@@ -33,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Índice da resposta correta inválido' }, { status: 400 })
   }
 
-  const id = createQuizQuestion({
+  const id = await createQuizQuestion({
     question: body.question.trim(),
     options: body.options,
     correctIndex: body.correctIndex,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { updateImpostorItem, deleteImpostorItem, setImpostorItemActive } from '@/lib/db/impostor-repository'
+import { ensureSeeded } from '@/lib/db/init'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const { id } = await params
   const body = await req.json() as {
     name?: string
@@ -24,7 +26,7 @@ export async function PUT(
   }
 
   if (typeof body.active === 'boolean' && body.name === undefined) {
-    setImpostorItemActive(id, body.active)
+    await setImpostorItemActive(id, body.active)
     return NextResponse.json({ ok: true })
   }
 
@@ -32,7 +34,7 @@ export async function PUT(
     return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
   }
 
-  updateImpostorItem(id, {
+  await updateImpostorItem(id, {
     name: body.name.trim(),
     category: body.category?.trim() || 'Geral',
     emoji: body.emoji?.trim() || '❓',
@@ -46,7 +48,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  await ensureSeeded()
   const { id } = await params
-  deleteImpostorItem(id)
+  await deleteImpostorItem(id)
   return NextResponse.json({ ok: true })
 }
