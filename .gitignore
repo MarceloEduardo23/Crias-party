@@ -20,10 +20,3 @@ dist/
 next-env.d.ts
 tsconfig.tsbuildinfo
 package-lock.json
-
-# Banco de dados local (SQLite)
-data/
-*.db
-*.db-journal
-*.db-wal
-*.db-shm

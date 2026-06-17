@@ -61,55 +61,64 @@ sala. Os celulares entram pelo código de 4 letras.
 ## Banco de dados (perguntas do Quiz e itens do Impostor)
 
 As perguntas do Quiz e os itens do Impostor (animais, comidas, lugares etc)
-ficam num **banco SQLite real**, acessado via `@libsql/client` — não mais em
-arquivos de código. Você cria, edita, ativa/desativa e exclui perguntas e
-itens direto pelo painel `/admin`, sem precisar editar nenhum código.
+ficam num **banco Postgres real**, hospedado no **Neon**, acessado via
+`@neondatabase/serverless` — não mais em arquivos de código. Você cria,
+edita, ativa/desativa e exclui perguntas e itens direto pelo painel
+`/admin`, sem precisar editar nenhum código.
 
-- Em **desenvolvimento** (sem nenhuma configuração extra), o banco vira um
-  arquivo local em `data/crias-party.db`, criado e populado automaticamente
-  na primeira execução com todo o conteúdo que já existia (38 perguntas de
-  quiz, 55 itens de impostor incluindo os 20 animais com foto).
-- Em **produção**, configure um banco [Turso](https://turso.tech) (SQLite
-  hospedado, com plano gratuito generoso) para que os dados persistam entre
-  deploys e funcionem corretamente em ambiente serverless — veja o passo a
-  passo abaixo.
+- Sem `DATABASE_URL` configurada, o app cai automaticamente num banco em
+  memória (já pré-populado com o conteúdo inicial), só para não travar o
+  desenvolvimento antes de você configurar o Neon — mas isso **não persiste**
+  entre reinícios.
+- Com `DATABASE_URL` configurada, conecta de fato no Neon: os dados
+  persistem entre deploys e funcionam corretamente em ambiente serverless
+  (a Vercel, onde seu site já está hospedado, é serverless e tem o
+  filesystem somente-leitura — por isso um banco hospedado é necessário
+  para persistência real).
 - No painel admin (`/admin`), tem três abas: **Salas**, **Quiz** e
   **Impostor**. Nas duas últimas você cadastra, edita e desativa conteúdo
   livremente.
 
-### Configurando o Turso para produção
+### Configurando o Neon e conectando na Vercel (seu site já hospedado)
 
-1. Crie uma conta gratuita em [turso.tech](https://turso.tech) e instale a CLI:
-   ```bash
-   curl -sSfL https://get.tur.so/install.sh | bash
-   ```
-2. Faça login e crie um banco:
-   ```bash
-   turso auth login
-   turso db create crias-party
-   ```
-3. Pegue a URL de conexão e gere um token de acesso:
-   ```bash
-   turso db show crias-party --url
-   turso db tokens create crias-party
-   ```
-4. Configure essas duas variáveis de ambiente (veja `.env.example`):
-   - `TURSO_DATABASE_URL` — a URL do passo anterior (formato `libsql://...`)
-   - `TURSO_AUTH_TOKEN` — o token gerado
-   - Na Vercel: **Settings → Environment Variables**, adicione as duas e
-     faça o redeploy.
-5. No primeiro acesso ao app já configurado com Turso, o seed automático
-   roda normalmente e popula o banco hospedado com o conteúdo inicial.
+1. Crie uma conta gratuita em [neon.tech](https://neon.tech) e crie um
+   projeto novo (pode chamar de `crias-party`).
+2. No painel do Neon, vá em **Connection Details** e copie a *connection
+   string* (algo como `postgresql://usuario:senha@ep-xxxxx.neon.tech/neondb?sslmode=require`).
+3. Como seu site já está na Vercel, é só adicionar a variável lá:
+   - Acesse [vercel.com](https://vercel.com) → seu projeto → **Settings →
+     Environment Variables**.
+   - Adicione uma variável chamada `DATABASE_URL` com o valor da connection
+     string copiada no passo 2.
+   - Marque para os ambientes **Production**, **Preview** e **Development**
+     (ou pelo menos Production).
+   - Clique em **Save**.
+4. Force um novo deploy para a variável entrar em vigor: na aba
+   **Deployments**, nos três pontinhos do último deploy, clique em
+   **Redeploy** (ou simplesmente faça um novo `git push`).
+5. No primeiro acesso ao site já com `DATABASE_URL` configurada, o app cria
+   automaticamente as tabelas no Neon e popula com o conteúdo inicial (38
+   perguntas de quiz, 55 itens de impostor). Você pode confirmar acessando
+   `/admin` e olhando as abas Quiz/Impostor.
 
-Sem essas variáveis configuradas, o app continua funcionando perfeitamente
-em desenvolvimento local (cai automaticamente no arquivo SQLite local) — elas
-só são necessárias quando for para produção de verdade.
+### Rodando localmente com o mesmo banco do Neon (opcional)
 
+Se quiser testar localmente já conectado ao Neon (em vez do fallback em
+memória), crie um arquivo `.env.local` na raiz do projeto (baseado no
+`.env.example`) com a mesma `DATABASE_URL`:
+
+```bash
+DATABASE_URL=postgresql://usuario:senha@ep-xxxxx.neon.tech/neondb?sslmode=require
+```
+
+Sem esse arquivo, `npm run dev` continua funcionando normalmente com o
+fallback em memória — útil para testar rapidamente sem afetar os dados de
+produção no Neon.
 
 ## Próximos passos sugeridos
 
 - Mover o estado das salas (jogadores, placar, jogo atual) para o mesmo
-  banco Turso ou para Redis — hoje ainda vive em memória do processo Node.
+  banco Neon ou para Redis — hoje ainda vive em memória do processo Node.
 - Trocar as imagens de animais por fotos hospedadas no próprio domínio (hoje
   usamos Wikimedia Commons) para não depender de terceiros.
 

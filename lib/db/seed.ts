@@ -1,4 +1,4 @@
-import { ensureSchema } from './client'
+import { ensureSchema, usingNeon } from './client'
 import { ANIMALS } from '../animals'
 import { WORD_PAIRS } from '../impostor-words'
 import { QUIZ_QUESTIONS } from '../quiz-questions'
@@ -6,10 +6,14 @@ import { countQuizQuestions, createQuizQuestion } from './quiz-repository'
 import { countImpostorItems, createImpostorItem } from './impostor-repository'
 
 /**
- * Popula o banco com o conteúdo que antes vivia em arquivos estáticos.
- * Seguro de rodar mais de uma vez: só insere se as tabelas estiverem vazias.
+ * Popula o banco Postgres (Neon) com o conteúdo que antes vivia em arquivos
+ * estáticos. Seguro de rodar mais de uma vez: só insere se as tabelas
+ * estiverem vazias. Quando não há Neon configurado, o fallback em memória
+ * (lib/db/memory-fallback.ts) já vem pré-populado e este seed não faz nada.
  */
 export async function seedDatabase() {
+  if (!usingNeon) return // fallback em memória já está populado
+
   await ensureSchema()
 
   if ((await countQuizQuestions()) === 0) {

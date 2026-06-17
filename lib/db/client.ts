@@ -1,47 +1,33 @@
-import { createClient, type Client } from '@libsql/client'
-import path from 'node:path'
-import fs from 'node:fs'
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
 
-// Em produção (Vercel ou qualquer serverless), defina TURSO_DATABASE_URL e
-// TURSO_AUTH_TOKEN nas variáveis de ambiente para usar um banco Turso
-// hospedado (persistente entre deploys/instâncias).
+// Banco de dados: Neon (Postgres serverless).
 //
-// Sem essas variáveis, cai automaticamente para um arquivo SQLite local em
-// ./data/crias-party.db — ótimo para desenvolvimento, mas não persiste em
-// ambientes serverless com filesystem somente-leitura.
+// Configure a variável de ambiente DATABASE_URL (veja .env.example) com a
+// connection string do seu projeto Neon. Sem ela, o app ainda funciona em
+// desenvolvimento usando um banco em memória (não persiste, mas evita que
+// o app quebre se você ainda não configurou o Neon).
 
-const TURSO_URL = process.env.TURSO_DATABASE_URL
-const TURSO_TOKEN = process.env.TURSO_AUTH_TOKEN
+const DATABASE_URL = process.env.DATABASE_URL
 
-function resolveLocalUrl(): string {
-  const dataDir = path.join(process.cwd(), 'data')
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true })
-  }
-  return `file:${path.join(dataDir, 'crias-party.db')}`
+export const usingNeon = Boolean(DATABASE_URL)
+
+export const sql: NeonQueryFunction<false, false> | null = DATABASE_URL
+  ? neon(DATABASE_URL)
+  : null
+
+if (!usingNeon) {
+  console.warn(
+    '[db] DATABASE_URL não configurada — usando banco em memória (dados não persistem). ' +
+    'Configure DATABASE_URL com sua connection string do Neon para persistência real.',
+  )
 }
-
-type GlobalWithDb = typeof globalThis & { __criasDb?: Client }
-const g = globalThis as GlobalWithDb
-
-function createConnection(): Client {
-  if (TURSO_URL) {
-    return createClient({
-      url: TURSO_URL,
-      authToken: TURSO_TOKEN,
-    })
-  }
-  return createClient({ url: resolveLocalUrl() })
-}
-
-export const db: Client = g.__criasDb ?? (g.__criasDb = createConnection())
-
-export const usingTurso = Boolean(TURSO_URL)
 
 export async function initSchema() {
-  await db.execute(`
+  if (!sql) return // banco em memória não precisa de schema
+
+  await sql.query(`
     CREATE TABLE IF NOT EXISTS quiz_questions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       question TEXT NOT NULL,
       option_a TEXT NOT NULL,
       option_b TEXT NOT NULL,
@@ -49,25 +35,25 @@ export async function initSchema() {
       option_d TEXT NOT NULL,
       correct_index INTEGER NOT NULL CHECK (correct_index BETWEEN 0 AND 3),
       category TEXT NOT NULL DEFAULT 'Geral',
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `)
 
-  await db.execute(`
+  await sql.query(`
     CREATE TABLE IF NOT EXISTS impostor_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       category TEXT NOT NULL DEFAULT 'Geral',
       emoji TEXT NOT NULL DEFAULT '❓',
       image_url TEXT,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `)
 
-  await db.execute('CREATE INDEX IF NOT EXISTS idx_quiz_active ON quiz_questions(active)')
-  await db.execute('CREATE INDEX IF NOT EXISTS idx_impostor_active ON impostor_items(active)')
+  await sql.query('CREATE INDEX IF NOT EXISTS idx_quiz_active ON quiz_questions(active)')
+  await sql.query('CREATE INDEX IF NOT EXISTS idx_impostor_active ON impostor_items(active)')
 }
 
 let schemaReady: Promise<void> | null = null
